@@ -43,9 +43,91 @@ static struct aucodec aptx = {
 	.fmtp_cmph = aptx_fmtp_cmp,
 };
 
+static char fmtp_local[256] = "";
+static char fmtp_mirror[256];
+
+uint32_t aptx_variant, aptx_bitresolution;
+
+
+void aptx_encode_fmtp(const struct aptx_param *prm)
+{
+	(void)re_snprintf(fmtp_local, sizeof(fmtp_local),
+	                  "variant=%s; bitresolution=%u",
+	                  prm->variant == APTX_VARIANT_HD ? "hd" : "standard",
+	                  prm->bitresolution);
+}
+
+
+/* Parse remote fmtp string and map it to aptx_param struct */
+void aptx_decode_fmtp(struct aptx_param *prm, const char *fmtp)
+{
+	struct pl pl, val;
+
+	if (!prm || !fmtp)
+		return;
+
+	pl_set_str(&pl, fmtp);
+
+	if (fmt_param_get(&pl, "variant", &val)) {
+		if (!pl_strcasecmp(&val, "standard"))
+			prm->variant = APTX_VARIANT_STANDARD;
+		if (!pl_strcasecmp(&val, "hd"))
+			prm->variant = APTX_VARIANT_HD;
+	}
+
+	if (fmt_param_get(&pl, "bitresolution", &val))
+		prm->bitresolution = pl_u32(&val);
+
+	warning("aptx: variant: %u, bitresolution: %u\n",
+	      prm->variant, prm->bitresolution);
+}
+
+
+/* describe local encoded format to remote */
+int aptx_fmtp_enc(struct mbuf *mb, const struct sdp_format *fmt, bool offer,
+                  void *arg)
+{
+	bool mirror;
+
+	(void)offer;
+	(void)arg;
+
+	if (!mb || !fmt)
+		return 0;
+
+	mirror = !offer && str_isset(fmtp_mirror);
+
+	return mbuf_printf(mb, "a=fmtp:%s %s\r\n", fmt->id,
+	                   mirror ? fmtp_mirror : fmtp_local);
+}
+
+
+void aptx_mirror_params(const char *x)
+{
+	debug("aptx: mirror parameters: \"%s\"\n", x);
+
+	str_ncpy(fmtp_mirror, x, sizeof(fmtp_mirror));
+}
+
 
 static int module_init(void)
 {
+	struct conf *conf = conf_cur();
+	struct aptx_param prm;
+
+	/* default encoder configuration */
+	aptx_variant = 0;
+
+	/* encoder configuration from config file */
+	(void)conf_get_u32(conf, "aptx_variant", &aptx_variant);
+
+	prm.variant = aptx_variant;
+	prm.bitresolution = (aptx_variant == APTX_VARIANT_HD) ? 24 : 16;
+
+	aptx_encode_fmtp(&prm);
+
+	debug("aptx: fmtp=\"%s\"\n", fmtp_local);
+
 	aucodec_register(baresip_aucodecl(), &aptx);
 
 	return 0;

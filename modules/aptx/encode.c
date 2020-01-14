@@ -46,7 +46,7 @@ int aptx_encode_update(struct auenc_state **aesp, const struct aucodec *ac,
 	if (!aes)
 		return ENOMEM;
 
-	aes->enc = aptx_init(APTX_VARIANT);
+	aes->enc = aptx_init(aptx_variant);
 	if (!aes->enc) {
 		warning("aptx: Cannot initialize encoder.\n");
 		err = ENOMEM;
