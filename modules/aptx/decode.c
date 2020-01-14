@@ -45,7 +45,7 @@ int aptx_decode_update(struct audec_state **adsp, const struct aucodec *ac,
 	if (!ads)
 		return ENOMEM;
 
-	ads->dec = aptx_init(APTX_VARIANT);
+	ads->dec = aptx_init(aptx_variant);
 	if (!ads->dec) {
 		warning("aptx: Cannot initialize decoder.\n");
 		err = ENOMEM;

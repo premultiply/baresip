@@ -4,7 +4,10 @@
  * Copyright (C) 2019 Hessischer Rundfunk
  */
 
-#define APTX_VARIANT 0 /* 0 = Standard, 1 = HQ */
+struct aptx_param {
+	uint32_t variant;
+	uint32_t bitresolution;
+};
 
 enum {
 	APTX_SRATE = 48000,
@@ -14,24 +17,32 @@ enum {
 	APTX_WORDSIZE = 3,
 };
 
+extern uint32_t aptx_variant, aptx_bitresolution;
+
 
 int aptx_encode_update(struct auenc_state **aesp, const struct aucodec *ac,
                        struct auenc_param *param, const char *fmtp);
 
-int aptx_encode_frm(struct auenc_state *aes,
-		    bool *marker, uint8_t *buf, size_t *len,
-                    int fmt, const void *sampv, size_t sampc);
+int aptx_encode_frm(struct auenc_state *aes, bool *marker, uint8_t *buf,
+                    size_t *len, int fmt, const void *sampv, size_t sampc);
 
 
 int aptx_decode_update(struct audec_state **adsp, const struct aucodec *ac,
                        const char *fmtp);
 
 int aptx_decode_frm(struct audec_state *ads, int fmt, void *sampv,
-                    size_t *sampc, bool marker,
-		    const uint8_t *buf, size_t len);
+                    size_t *sampc, bool marker, const uint8_t *buf,
+                    size_t len);
 
 
 int aptx_fmtp_enc(struct mbuf *mb, const struct sdp_format *fmt, bool offer,
                   void *arg);
-
 bool aptx_fmtp_cmp(const char *lfmtp, const char *rfmtp, void *arg);
+
+
+void aptx_encode_fmtp(const struct aptx_param *prm);
+
+void aptx_decode_fmtp(struct aptx_param *prm, const char *fmtp);
+
+
+void aptx_mirror_params(const char *fmtp);
